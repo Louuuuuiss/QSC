@@ -1,54 +1,50 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Google Sheets 資料</title>
-  <style>
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    table, th, td {
-      border: 1px solid black;
-    }
-    th, td {
-      padding: 8px;
-      text-align: center;
-    }
-  </style>
-</head>
-<body>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跑馬燈顯示</title>
+    <style>
+      #marquee {
+        width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        box-sizing: border-box;
+        background-color: #f0f0f0;
+        padding: 10px 0;
+      }
+      #marquee-content {
+        display: inline-block;
+        font-size: 24px;
+        font-family: Arial, sans-serif;
+        animation: scroll 10s linear infinite;
+      }
+      @keyframes scroll {
+        0% { transform: translateX(100%); }
+        100% { transform: translateX(-100%); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="marquee">
+      <div id="marquee-content"></div>
+    </div>
+    
+    <script>
+      // 從 Google Apps Script 讀取資料並顯示在跑馬燈上
+      function fetchData() {
+        fetch('https://script.google.com/macros/s/AKfycbw02RLVQmZYiW9FDRrN7X9K3FgP5blLG-Q5QspmRs-IFx5UJyKfuLQ0UeELAm-anSTt/exec')
+          .then(response => response.json())
+          .then(data => {
+            // 將資料顯示在跑馬燈中
+            const marqueeContent = document.getElementById('marquee-content');
+            marqueeContent.textContent = data.join('   |   '); // 使用 | 作為分隔符
+          })
+          .catch(error => console.error('Error fetching data:', error));
+      }
 
-  <h1>Google Sheets 資料顯示</h1>
-  <table id="sheetData"></table>
-
-  <script>
-    // 使用 Google Apps Script 提供的 getSheetData 函數讀取資料
-    function loadData() {
-      google.script.run.withSuccessHandler(function(data) {
-        var table = document.getElementById("sheetData");
-        
-        // 動態生成表格標題
-        var headerRow = table.insertRow();
-        for (var i = 0; i < data[0].length; i++) {
-          var cell = headerRow.insertCell();
-          cell.textContent = data[0][i];
-        }
-
-        // 插入資料行
-        for (var i = 1; i < data.length; i++) {
-          var row = table.insertRow();
-          for (var j = 0; j < data[i].length; j++) {
-            var cell = row.insertCell();
-            cell.textContent = data[i][j];
-          }
-        }
-      }).getSheetData();  // 呼叫 Google Apps Script 的 getSheetData 函數
-    }
-
-    // 在網頁載入時載入資料
-    window.onload = loadData;
-  </script>
-</body>
+      // 頁面加載後抓取資料
+      window.onload = fetchData;
+    </script>
+  </body>
 </html>
