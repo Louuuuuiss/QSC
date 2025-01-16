@@ -649,6 +649,8 @@ function handleSpecialCorner(cornerName) {
 
         if (newLaps >= 1) {
             score = 9999;
+                // 更新分數顯示
+    scoreDisplay.textContent = score;
     alert("遊戲結束！你完成了 3 個完整迴圈！");
     console.log("遊戲結束時的 playerName:", playerName);  // 加入除錯訊息
     isGameOver = true;
