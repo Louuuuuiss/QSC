@@ -4,14 +4,54 @@
     <meta charset="UTF-8">
     <title>擲骰子遊戲</title>
     <style>
-        /* (省略樣式代碼，保持不變) */
+        /* 原始 CSS */
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: Arial, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container { width: 100%; max-width: 800px; background: white; padding: 2rem; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0; }
+        .header h2 { color: #333; font-size: 1.5rem; margin: 0; }
+        .user-controls { display: flex; gap: 1rem; align-items: center; }
+        #loginSection, #gameSection { margin: 1rem 0; }
+        #gameSection { display: none; }
+        .input-group { margin-bottom: 1rem; }
+        input {
+            width: 100%; padding: 0.8rem; margin: 0.5rem 0; border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 1rem; transition: border-color 0.3s;
+        }
+        input:focus { outline: none; border-color: #4CAF50; }
+        .btn {
+            padding: 0.8rem 1.5rem; border: none; border-radius: 8px; cursor: pointer; font-size: 1rem; font-weight: 600; transition: all 0.3s;
+        }
+        .btn-primary { background: #4CAF50; color: white; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+        .btn:active { transform: translateY(0); }
+        .btn:disabled { background: #cccccc; cursor: not-allowed; transform: none; box-shadow: none; }
+        .error-message { color: #dc3545; font-size: 0.9rem; margin-top: 5px; display: none; }
+        .game-area { display: flex; flex-direction: column; align-items: center; gap: 2rem; }
+        .dice-container { perspective: 1000px; margin: 2rem 0; }
+        .dice {
+            width: 100px; height: 100px; position: relative; transform-style: preserve-3d; transition: transform 0.1s; cursor: pointer;
+        }
+        .dice-face { position: absolute; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; font-size: 150px; }
+        @keyframes roll { 0%, 100% { transform: rotateX(0) rotateY(0); } 50% { transform: rotateX(360deg) rotateY(360deg); } }
+        .rolling { animation: roll 1s ease-out; }
+        #history { width: 100%; max-height: 200px; overflow-y: auto; padding: 1rem; border: 1px solid #e0e0e0; border-radius: 8px; background: #f8f9fa; }
     </style>
 </head>
 <body>
     <div class="container">
         <div id="loginSection">
             <div class="header">
-                <h2>Welcome!</h2>
+                <h2>歡迎來到擲骰子遊戲</h2>
             </div>
             <div class="input-group">
                 <input type="text" id="username" placeholder="請輸入使用者名稱">
@@ -22,128 +62,69 @@
         
         <div id="gameSection">
             <div class="header">
-                <h2>Welcome, <span id="userDisplay"></span>!</h2>
-                <div class="user-controls">
-                    <button class="btn btn-danger" id="logoutButton" onclick="logout()">登出</button>
-                </div>
+                <h2>玩家：<span id="userDisplay"></span></h2>
+                <button class="btn btn-danger" onclick="logout()">登出</button>
             </div>
             <div class="game-area">
                 <div class="dice-container">
-                    <div class="dice" id="dice">
-                        <div class="dice-face front">⚀</div>
-                        <div class="dice-face back">⚁</div>
-                        <div class="dice-face right">⚂</div>
-                        <div class="dice-face left">⚃</div>
-                        <div class="dice-face top">⚄</div>
-                        <div class="dice-face bottom">⚅</div>
-                    </div>
+                    <div id="dice" class="dice"></div>
                 </div>
                 <button class="btn btn-primary" onclick="rollDice()">擲骰子</button>
+                <button class="btn btn-primary" onclick="sendToServer()">提交數據</button>
                 <div id="history"></div>
             </div>
         </div>
     </div>
 
     <script>
-        const dicefaces = ['⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
-        let username = '';
-        let isRolling = false;
-        
-        const scriptURL = "https://script.google.com/macros/s/AKfycbxEp1gDu_9V_6PIZ9UHfOJ8xuy7yhiLTtbDoGcU7Wh3yI143scu3ovorY8KfjTmjTg2/exec"; // 替換為您的 Apps Script 網頁應用程式 URL
+        const serverURL = "https://script.google.com/macros/s/AKfycbys3qEXyShmuRFTbu6apFzoN-VE64wblqjyy479JcUYrXv_Nb9bYz0nZ8QN54YIjITS/exec";
+        let username = "";
+        let diceHistory = [];
 
-        window.onload = function() {
-            initializeGame();
-        }
-
-        window.addEventListener('beforeunload', function() {
-            initializeGame();
-        });
-        
-        function initializeGame() {
-            username = '';
-            document.getElementById('username').value = '';
-            document.getElementById('history').innerHTML = '';
-            document.getElementById('gameSection').style.display = 'none';
-            document.getElementById('loginSection').style.display = 'block';
-            const dice = document.getElementById('dice');
-            dice.style.transform = 'rotateX(0deg) rotateY(0deg)';
-            isRolling = false;
-        }
-        
-        document.getElementById('username').addEventListener('input', function() {
-            document.getElementById('errorMessage').style.display = 'none';
-        });
-        
         function login() {
-            username = document.getElementById('username').value.trim();
+            username = document.getElementById("username").value.trim();
             if (!username) {
-                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById("errorMessage").style.display = "block";
                 return;
             }
-            
-            document.getElementById('loginSection').style.display = 'none';
-            document.getElementById('gameSection').style.display = 'block';
-            document.getElementById('userDisplay').textContent = username;
+            document.getElementById("loginSection").style.display = "none";
+            document.getElementById("gameSection").style.display = "block";
+            document.getElementById("userDisplay").textContent = username;
         }
 
         function logout() {
-            if (!isRolling) {
-                initializeGame();
-            }
+            username = "";
+            diceHistory = [];
+            document.getElementById("loginSection").style.display = "block";
+            document.getElementById("gameSection").style.display = "none";
+            document.getElementById("history").innerHTML = "";
         }
-        
+
         function rollDice() {
-            const dice = document.getElementById('dice');
-            const logoutButton = document.getElementById('logoutButton');
-            
-            isRolling = true;
-            logoutButton.disabled = true;
-            
-            dice.classList.remove('rolling');
-            void dice.offsetWidth;
-            dice.classList.add('rolling');
-            
-            const button = document.querySelector('.game-area .btn-primary');
-            button.disabled = true;
-            
-            setTimeout(() => {
-                dice.classList.remove('rolling');
-                const result = Math.floor(Math.random() * 6);
-                
-                const rotations = {
-                    0: 'rotateX(0deg) rotateY(0deg)',
-                    1: 'rotateX(0deg) rotateY(180deg)',
-                    2: 'rotateX(0deg) rotateY(-90deg)',
-                    3: 'rotateX(0deg) rotateY(90deg)',
-                    4: 'rotateX(-90deg) rotateY(0deg)',
-                    5: 'rotateX(90deg) rotateY(0deg)'
-                };
-                
-                dice.style.transform = rotations[result];
-                
-                const now = new Date().toLocaleString();
-                const record = `${now} - ${username} 擲出了 ${result + 1} 點`;
-                const recordDiv = document.createElement('div');
-                recordDiv.textContent = record;
-                document.getElementById('history').insertBefore(recordDiv, document.getElementById('history').firstChild);
-
-                sendToGoogleSheet(username, result + 1, now);
-
-                button.disabled = false;
-                isRolling = false;
-                logoutButton.disabled = false;
-            }, 1500);
+            const result = Math.floor(Math.random() * 6) + 1;
+            diceHistory.push(result);
+            const record = document.createElement("div");
+            record.textContent = `玩家 ${username} 擲出了 ${result}`;
+            document.getElementById("history").appendChild(record);
         }
 
-        function sendToGoogleSheet(username, diceValue, timestamp) {
-            const data = new URLSearchParams();
-            data.append("username", username);
-            data.append("diceValue", diceValue);
-            data.append("timestamp", timestamp);
-
-            fetch(scriptURL, { method: "POST", body: data })
-                .then(response => console.log("Success!", response))
-                .catch(error => console.error("Error!", error));
+        async function sendToServer() {
+            if (!diceHistory.length) {
+                alert("尚未擲骰子，無法提交！");
+                return;
+            }
+            try {
+                const response = await fetch(serverURL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, diceHistory }),
+                });
+                const data = await response.json();
+                alert(`提交成功：${JSON.stringify(data)}`);
+                diceHistory = [];
+            } catch (error) {
+                alert("提交失敗：" + error.message);
+            }
         }
     </script>
 </body>
