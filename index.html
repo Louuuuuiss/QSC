@@ -1,50 +1,60 @@
 <!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>跑馬燈顯示</title>
-    <style>
-      #marquee {
-        width: 100%;
-        white-space: nowrap;
-        overflow: hidden;
-        box-sizing: border-box;
-        background-color: #f0f0f0;
-        padding: 10px 0;
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>跑馬燈顯示</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      text-align: center;
+    }
+    #marquee {
+      white-space: nowrap;
+      overflow: hidden;
+      width: 100%;
+      position: fixed;
+      top: 0;
+      background-color: #222;
+      color: white;
+      padding: 10px;
+      font-size: 24px;
+      animation: marquee 15s linear infinite;
+    }
+    @keyframes marquee {
+      0% {
+        transform: translateX(100%);
       }
-      #marquee-content {
-        display: inline-block;
-        font-size: 24px;
-        font-family: Arial, sans-serif;
-        animation: scroll 10s linear infinite;
+      100% {
+        transform: translateX(-100%);
       }
-      @keyframes scroll {
-        0% { transform: translateX(100%); }
-        100% { transform: translateX(-100%); }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="marquee">
-      <div id="marquee-content"></div>
-    </div>
-    
-    <script>
-      // 從 Google Apps Script 讀取資料並顯示在跑馬燈上
-      function fetchData() {
-        fetch('https://script.google.com/macros/s/AKfycbw02RLVQmZYiW9FDRrN7X9K3FgP5blLG-Q5QspmRs-IFx5UJyKfuLQ0UeELAm-anSTt/exec')
-          .then(response => response.json())
-          .then(data => {
-            // 將資料顯示在跑馬燈中
-            const marqueeContent = document.getElementById('marquee-content');
-            marqueeContent.textContent = data.join('   |   '); // 使用 | 作為分隔符
-          })
-          .catch(error => console.error('Error fetching data:', error));
-      }
+    }
+  </style>
+</head>
+<body>
+  <div id="marquee"></div>
+  
+  <script>
+    // 定義一個函數來從 Google Sheets 更新資料
+    function updateMarquee() {
+      fetch('https://script.google.com/macros/s/AKfycbyRLdoGK1Et8m_pVkmXonFi1qMEvCd5aWqDqyM_GfbpFy6vwaQh-ZklTKpww1fypLJt/exec')
+        .then(response => response.json())
+        .then(data => {
+          // 將資料轉換為跑馬燈顯示內容
+          const marqueeText = data.map(row => row[0]).join('   |   ');
+          document.getElementById('marquee').textContent = marqueeText;
+        })
+        .catch(error => console.error('Error loading data:', error));
+    }
 
-      // 頁面加載後抓取資料
-      window.onload = fetchData;
-    </script>
-  </body>
+    // 初始化頁面時立即更新數據一次
+    updateMarquee();
+
+    // 每3秒鐘更新一次數據
+    setInterval(updateMarquee, 3000);  // 3000毫秒即每3秒更新一次
+  </script>
+</body>
 </html>
