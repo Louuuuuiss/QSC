@@ -295,36 +295,6 @@
       h1 {
         font-size: 2em;
       }
-@keyframes crawlUp {
-  0% {
-    transform: translateY(100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-@keyframes crawlDown {
-  0% {
-    transform: translateY(-100%);
-    opacity: 0;
-  }
-  100% {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.table-container tr {
-  animation: crawlUp 0.5s ease-out;
-}
-
-.table-container tr.crawl-down {
-  animation: crawlDown 0.5s ease-out;
-}
-
     }
   </style>
   <script>
@@ -424,71 +394,61 @@
     }
 
     async function fetchPlayerScores() {
-  const url = 'https://script.google.com/macros/s/AKfycbz5opjnCKgfDa9Durqnxoww8Si6P04DO1f7tIvQfTBh-oJHaRdYx6nMynCVywEb7Rmw/exec';
-  try {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-    const data = await response.json();
-
-    // Sort data for table display
-    data.sort((a, b) => b.score - a.score);
-
-    // Handle ranking
-    let rank = 1;
-    let lastScore = null;
-    let rankGroup = [];
-    data.forEach((player, index) => {
-      if (lastScore !== null && player.score === lastScore) {
-        rankGroup.push(player);
-      } else {
-        if (rankGroup.length > 0) {
-          rankGroup.forEach(p => p.rank = rank);
-          rankGroup = [];
+      const url = 'https://script.google.com/macros/s/AKfycbz5opjnCKgfDa9Durqnxoww8Si6P04DO1f7tIvQfTBh-oJHaRdYx6nMynCVywEb7Rmw/exec';
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
         }
-        rankGroup.push(player);
-        player.rank = rank;
+        const data = await response.json();
+
+        // Sort data for table display
+        data.sort((a, b) => b.score - a.score);
+
+        // Handle ranking
+        let rank = 1;
+        let lastScore = null;
+        let rankGroup = [];
+        data.forEach((player, index) => {
+          if (lastScore !== null && player.score === lastScore) {
+            rankGroup.push(player);
+          } else {
+            if (rankGroup.length > 0) {
+              rankGroup.forEach(p => p.rank = rank);
+              rankGroup = [];
+            }
+            rankGroup.push(player);
+            player.rank = rank;
+          }
+          lastScore = player.score;
+          if (index === data.length - 1 || player.score !== data[index + 1].score) {
+            rankGroup.forEach(p => p.rank = rank);
+            rankGroup = [];
+            rank++;
+          }
+        });
+
+        // Update table
+        const tableBody = document.getElementById('scores-table-body');
+        tableBody.innerHTML = '';
+        data.forEach(player => {
+          const row = document.createElement('tr');
+          const medalIcon = getMedalIcon(player.rank);
+          row.innerHTML = `
+            <td>${medalIcon}</td>
+            <td>${player.playerName}</td>
+            <td>${player.score}</td>
+          `;
+          tableBody.appendChild(row);
+        });
+
+        // Create marquee content with improved animation
+        updateMarquee(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        document.getElementById('error-message').innerText = `Error loading data: ${error.message}`;
       }
-      lastScore = player.score;
-      if (index === data.length - 1 || player.score !== data[index + 1].score) {
-        rankGroup.forEach(p => p.rank = rank);
-        rankGroup = [];
-        rank++;
-      }
-    });
-
-    // Update table with animation
-    const tableBody = document.getElementById('scores-table-body');
-    tableBody.innerHTML = '';  // Clear current rows
-
-    data.forEach(player => {
-      const row = document.createElement('tr');
-      const medalIcon = getMedalIcon(player.rank);
-      row.innerHTML = `
-        <td>${medalIcon}</td>
-        <td>${player.playerName}</td>
-        <td>${player.score}</td>
-      `;
-      
-      // Add class for animation
-      row.classList.add('crawl-up');
-      tableBody.appendChild(row);
-
-      // Remove the class after the animation ends for reusability
-      row.addEventListener('animationend', () => {
-        row.classList.remove('crawl-up');
-      });
-    });
-
-    // Create marquee content with improved animation
-    updateMarquee(data);
-  } catch (error) {
-    console.error('Error fetching data:', error);
-    document.getElementById('error-message').innerText = `Error loading data: ${error.message}`;
-  }
-}
-
+    }
 
     function getMedalIcon(rank) {
       switch (rank) {
@@ -551,7 +511,7 @@
 
     window.onload = () => {
       fetchPlayerScores();
-      setInterval(fetchPlayerScores, 60000);
+      setInterval(fetchPlayerScores, 5000);
       startFireworks();
     };
   </script>
