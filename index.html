@@ -53,7 +53,7 @@
       border-radius: 50%;
       transform-style: preserve-3d;
       animation: launch 1.5s ease-out forwards;
-      filter: blur(0.5px);
+      filter: blur(0.2px);
     }
 
     .spark {
@@ -169,6 +169,12 @@
       animation: shine 3s infinite;
     }
 
+    .marquee-wrapper {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+    }
+
     #marquee {
       display: flex;
       white-space: nowrap;
@@ -176,8 +182,7 @@
       font-weight: 600;
       color: #fff;
       text-shadow: 0 0 10px rgba(255,255,255,0.5);
-      animation: marquee 30s linear infinite;
-      transform: translateX(0);
+      position: relative;
     }
 
     #marquee span {
@@ -194,12 +199,27 @@
     }
 
     #marquee span::after {
-      content: '❖';
-      margin-left: 40px;
-      color: rgba(255,255,255,0.6);
-      animation: rotate 4s linear infinite;
-      display: inline-block;
-    }
+  content: '';
+  margin-left: 60px;
+  width: 30px; /* 圖片的寬度 */
+  height: 30px; /* 圖片的高度 */
+  display: inline-block;
+  background-image: url('https://ppt.cc/fatdsx@.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+  animation: rotate 15s linear infinite; /* 添加旋轉動畫 */
+}
+
+/* 定義旋轉動畫 */
+@keyframes rotate {
+  0% {
+    transform: rotate(0deg); /* 起始角度 */
+  }
+  100% {
+    transform: rotate(360deg); /* 完整旋轉一圈 */
+  }
+}
 
     h1 {
       text-align: center;
@@ -253,11 +273,6 @@
       transform: scale(1.02);
     }
 
-    @keyframes marquee {
-      0% { transform: translateX(100%); }
-      100% { transform: translateX(-100%); }
-    }
-
     @keyframes shine {
       0% { transform: skewX(-20deg) translateX(-100%); }
       100% { transform: skewX(-20deg) translateX(200%); }
@@ -280,6 +295,36 @@
       h1 {
         font-size: 2em;
       }
+@keyframes crawlUp {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes crawlDown {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.table-container tr {
+  animation: crawlUp 0.5s ease-out;
+}
+
+.table-container tr.crawl-down {
+  animation: crawlDown 0.5s ease-out;
+}
+
     }
   </style>
   <script>
@@ -293,10 +338,10 @@
       ];
 
       const startX = Math.random() * window.innerWidth;
-      const startZ = Math.random() * 500 - 250;
+      const startZ = Math.random() * 500 - 150;
       const endX = startX + (Math.random() * 200 - 100);
-      const endY = Math.random() * (window.innerHeight * 0.6);
-      const endZ = startZ + (Math.random() * 200 - 100);
+      const endY = Math.random() * (window.innerHeight * 0.7);
+      const endZ = startZ + (Math.random() * 500 - 150);
 
       const firework = document.createElement('div');
       firework.className = 'firework';
@@ -317,7 +362,7 @@
       createGlow(endX, endY, endZ, color1);
       
       setTimeout(() => {
-        const sparkCount = 150;
+        const sparkCount = 200;
         for(let i = 0; i < sparkCount; i++) {
           createSpark(endX, endY, endZ, color1, color2);
         }
@@ -413,9 +458,10 @@
       }
     });
 
-    // Update table
+    // Update table with animation
     const tableBody = document.getElementById('scores-table-body');
-    tableBody.innerHTML = '';
+    tableBody.innerHTML = '';  // Clear current rows
+
     data.forEach(player => {
       const row = document.createElement('tr');
       const medalIcon = getMedalIcon(player.rank);
@@ -424,23 +470,25 @@
         <td>${player.playerName}</td>
         <td>${player.score}</td>
       `;
+      
+      // Add class for animation
+      row.classList.add('crawl-up');
       tableBody.appendChild(row);
+
+      // Remove the class after the animation ends for reusability
+      row.addEventListener('animationend', () => {
+        row.classList.remove('crawl-up');
+      });
     });
 
-    // Create randomized marquee content
-    const marquee = document.getElementById('marquee');
-    let marqueeContent = '';
-    for (let i = 0; i < 3; i++) {
-      // Create a copy of the data array and shuffle it
-      const shuffledData = [...data].sort(() => Math.random() - 0.5);
-      marqueeContent += shuffledData.map(player => `<span>${player.marqueeText}</span>`).join('');
-    }
-    marquee.innerHTML = marqueeContent;
+    // Create marquee content with improved animation
+    updateMarquee(data);
   } catch (error) {
     console.error('Error fetching data:', error);
     document.getElementById('error-message').innerText = `Error loading data: ${error.message}`;
   }
 }
+
 
     function getMedalIcon(rank) {
       switch (rank) {
@@ -455,13 +503,55 @@
       }
     }
 
+    function updateMarquee(data) {
+      const marquee = document.getElementById('marquee');
+      
+      // Calculate total width needed for smooth scrolling
+      const containerWidth = document.getElementById('marquee-container').offsetWidth;
+      let content = '';
+      let totalWidth = 0;
+      let iterations = 0;
+      
+      // Keep adding content until we have enough to fill the container at least twice
+      while (totalWidth < containerWidth * 3 && iterations < 10) {
+        const shuffledData = [...data].sort(() => Math.random() - 0.5);
+        content += shuffledData.map(player => `<span>${player.marqueeText}</span>`).join('');
+        // Update approximate total width
+        totalWidth += containerWidth;
+        iterations++;
+      }
+      
+      // Reset marquee content and position
+      marquee.innerHTML = content;
+      marquee.style.transform = 'translateX(100%)';
+      
+      // Calculate actual content width for animation
+      const contentWidth = marquee.scrollWidth;
+      const duration = contentWidth * 10; // Adjust speed factor as needed
+      
+      // Remove any existing animation
+      if (marquee.animation) {
+        marquee.animation.cancel();
+      }
+      
+      // Create and store new animation
+      marquee.animation = marquee.animate([
+        { transform: 'translateX(100%)' },
+        { transform: `translateX(-${contentWidth}px)` }
+      ], {
+        duration: duration,
+        easing: 'linear',
+        iterations: Infinity
+      });
+    }
+
     function startFireworks() {
-      setInterval(createFirework, 500); // 調整為0.5秒發射一次
+      setInterval(createFirework, 500);
     }
 
     window.onload = () => {
       fetchPlayerScores();
-      setInterval(fetchPlayerScores, 30000);
+      setInterval(fetchPlayerScores, 60000);
       startFireworks();
     };
   </script>
@@ -472,7 +562,9 @@
     <h1>Player Scores</h1>
     
     <div id="marquee-container">
-      <div id="marquee"></div>
+      <div class="marquee-wrapper">
+        <div id="marquee"></div>
+      </div>
     </div>
 
     <div class="table-container">
